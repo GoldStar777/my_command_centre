@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_name or "Aadi's Command Centre" }}</title>
+    <meta name="apple-mobile-web-app-title" content="{{ app_name or 'Command Centre' }}">
+    <meta name="application-name" content="{{ app_name or 'Command Centre' }}">
+
+  <!-- Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Core Styles -->
+  <style>
+    :root {
+      --bg-page: #f8f8f6;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f0f0ed;
+      --border-color: rgba(0, 0, 0, 0.08);
+      --border-hover: rgba(0, 0, 0, 0.16);
+      --text-title: #141416;
+      --text-main: #141416;
+      --text-muted: #6e6e76;
+      --placeholder-color: #a1a1aa;
+      --shadow-card: 0 1px 3px rgba(0,0,0,0.03), 0 3px 8px rgba(0,0,0,0.02);
+      --shadow-hover: 0 8px 24px -4px rgba(0,0,0,0.08);
+    }
+
+    html.dark {
+      --bg-page: #090a0c;
+      --bg-surface: #111215;
+      --bg-subtle: #18191e;
+      --border-color: rgba(255, 255, 255, 0.09);
+      --border-hover: rgba(255, 255, 255, 0.18);
+      --text-title: #ffffff;
+      --text-main: #f4f4f5;
+      --text-muted: #9ca3af;
+      --placeholder-color: #71717a;
+      --shadow-card: 0 2px 6px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
+      --shadow-hover: 0 10px 30px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+    }
+
+    .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Directive Card Architecture */
+    .directive-card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-card);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .directive-card:hover {
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-1.5px);
+    }
+
+    /* Left Tint Aura */
+    .directive-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 180px;
+      background: linear-gradient(90deg, var(--card-glow-left, transparent) 0%, transparent 100%);
+      pointer-events: none;
+      opacity: 0.8;
+      transition: opacity 0.2s ease;
+    }
+
+    /* Right Prominent Aura */
+    .directive-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 320px;
+      background: radial-gradient(circle at 95% 50%, var(--card-glow-right, transparent) 0%, transparent 75%);
+      pointer-events: none;
+      opacity: 0.9;
+      transition: opacity 0.2s ease;
+    }
+
+    .directive-card:hover::after {
+      opacity: 1;
+      width: 360px;
+    }
+
+    /* Form Inputs */
+    .input-clean {
+      background-color: var(--bg-subtle);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      transition: all 0.15s ease;
+      outline: none;
+    }
+    .input-clean:focus, .input-clean:focus-visible {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+    }
+
+    select.input-clean {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      background-size: 0.85em;
+      padding-right: 2.25rem !important;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator {
+      opacity: 0.45;
+      cursor: pointer;
+    }
+    html.dark input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.85);
+    }
+
+    .vertical-rl {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    }
+
+    /* Popover Keyboard Selection State */
+    .popover-item.active-keyboard {
+      background-color: rgba(59, 130, 246, 0.15) !important;
+      outline: 1px solid rgba(59, 130, 246, 0.4);
+    }
+
+    /* Quill Overhaul & Toolbar Styling */
+    .ql-toolbar.ql-snow {
+      border: none !important;
+      border-bottom: 1px solid var(--border-color) !important;
+      padding: 6px 10px !important;
+      background-color: var(--bg-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 2px;
+      align-items: center;
+    }
+    .ql-container.ql-snow {
+      border: none !important;
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-size: 0.9rem !important;
+      line-height: 1.7 !important;
+    }
+    .ql-editor {
+      padding: 14px 18px !important;
+    }
+    .ql-editor.ql-blank::before {
+      color: var(--placeholder-color) !important;
+      font-style: normal !important;
+      opacity: 0.85 !important;
+      left: 18px !important;
+    }
+
+    html.dark .ql-editor { color: #f4f4f5; }
+    html.dark .ql-stroke { stroke: #9ca3af !important; }
+    html.dark .ql-fill { fill: #9ca3af !important; }
+    html.dark .ql-picker { color: #d4d4d8 !important; }
+    html.dark .ql-picker-options {
+      background-color: #16171b !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    /* MS Word-Style Multi-Level Bullets */
+    .ql-editor ul {
+      padding-left: 1.4rem !important;
+    }
+    .ql-editor ul > li::before {
+      content: '•' !important;
+      font-size: 1.15em !important;
+    }
+    .ql-editor li.ql-indent-1:not(.ql-direction-rtl)::before {
+      content: '◦' !important;
+      font-size: 1.25em !important;
+    }
+    .ql-editor li.ql-indent-2:not(.ql-direction-rtl)::before {
+      content: '▪' !important;
+      font-size: 0.9em !important;
+    }
+    .ql-editor li.ql-indent-3:not(.ql-direction-rtl)::before {
+      content: '▫' !important;
+      font-size: 0.9em !important;
+    }
+    .ql-editor li.ql-indent-4:not(.ql-direction-rtl)::before {
+      content: '–' !important;
+      font-size: 1em !important;
+    }
+
+    /* MS Word-Style Multi-Level Numbering */
+    .ql-editor ol {
+      padding-left: 1.4rem !important;
+    }
+    .ql-editor ol li.ql-indent-1 { list-style-type: lower-alpha !important; }
+    .ql-editor ol li.ql-indent-2 { list-style-type: lower-roman !important; }
+    .ql-editor ol li.ql-indent-3 { list-style-type: decimal !important; }
+    .ql-editor ol li.ql-indent-4 { list-style-type: lower-alpha !important; }
+
+    /* Clean Horizontal Dividers */
+    .ql-editor hr {
+      border: none;
+      height: 1px;
+      background: var(--border-color);
+      margin: 1.25rem 0;
+    }
+    html.dark .ql-editor hr {
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    /* Divider Button Styling */
+    .ql-hr-btn {
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 1;
+      padding: 0 4px;
+      color: var(--text-muted);
+      border-radius: 4px;
+    }
+    .ql-hr-btn:hover {
+      color: var(--text-main);
+      background: rgba(0, 0, 0, 0.05);
+    }
+    html.dark .ql-hr-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Dragging States */
+    .sortable-ghost {
+      opacity: 0.25 !important;
+      background: #6366f1 !important;
+      border: 1px dashed #6366f1 !important;
+    }
+    .sortable-chosen {
+      cursor: grabbing !important;
+    }
+
+    /* Micro-scroll */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(140, 140, 150, 0.25); border-radius: 9999px; }
+  </style>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- SortableJS -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+
+  <!-- Quill Editor -->
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+</head>
+
+<body class="h-full flex flex-col antialiased selection:bg-zinc-800 selection:text-white transition-colors duration-200">
+
+  <!-- TOP DECK: Executive Status Bar -->
+  <header class="border-b px-7 py-3 flex items-center justify-between sticky top-0 z-30 transition-colors"
+          style="background-color: var(--bg-surface); border-color: var(--border-color);">
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]"></span>
+        <h1 class="text-xs font-bold tracking-wider uppercase font-mono" style="color: var(--text-title);">
+          {{ app_name or "My Command Centre"}}
+        </h1>
+      </div>
+      <div class="h-3 w-px bg-zinc-200 dark:bg-zinc-800"></div>
+      <span id="headerDirectiveCounter" class="text-[11px] font-mono font-medium" style="color: var(--text-muted);"></span>
+    </div>
+
+    <!-- Actions Right -->
+    <div class="flex items-center space-x-2.5">
+      <button onclick="openCategoryModal()" class="px-3 py-1.5 text-[11px] font-mono font-medium rounded-lg border input-clean hover:opacity-80 transition" tabindex="-1">
+        🏷️ Tags & Categories
+      </button>
+
+      <button onclick="triggerEndOfDay()" class="px-3.5 py-1.5 text-[11px] font-mono font-semibold rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 transition flex items-center gap-1.5 shadow-sm" tabindex="-1">
+        <span>✓ End of Day</span>
+      </button>
+
+      <div class="h-3 w-px bg-zinc-200 dark:bg-zinc-800 mx-1"></div>
+
+      <button onclick="toggleTheme()" class="p-1.5 rounded-lg border input-clean hover:opacity-80 transition" title="Toggle Theme" tabindex="-1">
+        <span id="themeIcon">🌓</span>
+      </button>
+
+      <span id="clock" class="text-[11px] font-mono pl-1 font-medium" style="color: var(--text-muted);"></span>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE CONTAINER -->
+  <main class="flex-1 max-w-[1550px] w-full mx-auto p-6 flex gap-5 overflow-hidden transition-all duration-300">
+
+    <!-- LEFT COLUMN: Structured Action Deck -->
+    <section id="directivesDeck" class="flex-1 flex flex-col space-y-4 overflow-hidden transition-all duration-300">
+
+      <!-- Streamlined Directive Intake Tray with True Sequential Tab Order -->
+      <div class="rounded-2xl p-4 space-y-3 relative z-40 border shadow-xs"
+           style="background-color: var(--bg-surface); border-color: var(--border-color);">
+        <div class="flex gap-2.5 items-center">
+          <!-- Step 1 in Tab Order: Title -->
+          <input id="taskTitle" type="text" placeholder="Add directive or key result... (Press '/' to focus)" 
+                 class="flex-1 input-clean rounded-xl px-3.5 py-2 text-xs placeholder-zinc-400"
+                 tabindex="1">
+          
+          <!-- Step 2 in Tab Order: Category Button with Keyboard & Typeahead Support -->
+          <div class="relative z-50">
+            <button id="categoryDropdownBtn" type="button" 
+                    tabindex="2"
+                    class="input-clean rounded-xl px-3 py-2 text-xs font-medium flex items-center justify-between gap-2.5 min-w-[155px]">
+              <div class="flex items-center gap-2">
+                <span id="selectedCatDot" class="w-2.5 h-2.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shadow-2xs"></span>
+                <span id="selectedCatText" class="truncate font-medium text-zinc-500 dark:text-zinc-400">Category</span>
+              </div>
+              <span class="text-[9px] text-zinc-400">▼</span>
+            </button>
+
+            <!-- Floating Menu -->
+            <div id="categoryMenu" class="hidden absolute left-0 top-full mt-2 w-52 rounded-xl border shadow-2xl z-[100] p-1.5 space-y-1 backdrop-blur-md"
+                 style="background-color: var(--bg-surface); border-color: var(--border-color);">
+              <!-- Populated dynamically -->
+            </div>
+            <input type="hidden" id="taskCategorySelect" value="">
+          </div>
+
+          <!-- Step 3 in Tab Order: Priority Button with Keyboard & Typeahead Support -->
+          <div class="relative z-50">
+            <button id="priorityDropdownBtn" type="button" 
+                    tabindex="3"
+                    class="input-clean rounded-xl px-3 py-2 text-xs font-medium flex items-center justify-between gap-2.5 min-w-[125px]">
+              <div class="flex items-center gap-2">
+                <span id="selectedPriorityDot" class="w-2.5 h-2.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shadow-2xs"></span>
+                <span id="selectedPriorityText" class="font-medium text-zinc-500 dark:text-zinc-400">Priority</span>
+              </div>
+              <span class="text-[9px] text-zinc-400">▼</span>
+            </button>
+
+            <!-- Floating Menu -->
+            <div id="priorityMenu" class="hidden absolute right-0 top-full mt-2 w-40 rounded-xl border shadow-2xl z-[100] p-1.5 space-y-1 backdrop-blur-md"
+                 style="background-color: var(--bg-surface); border-color: var(--border-color);">
+              <div data-val="red" onclick="selectPriority('red')" class="popover-item flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-xs font-medium" style="color: var(--text-main);">
+                <span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>
+                <span>High</span>
+              </div>
+              <div data-val="amber" onclick="selectPriority('amber')" class="popover-item flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-xs font-medium" style="color: var(--text-main);">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <span>Medium</span>
+              </div>
+              <div data-val="green" onclick="selectPriority('green')" class="popover-item flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-xs font-medium" style="color: var(--text-main);">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                <span>Low</span>
+              </div>
+            </div>
+            <input type="hidden" id="taskPriority" value="">
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <!-- Step 4 in Tab Order: Date -->
+          <input id="taskDue" type="date" tabindex="4" class="input-clean rounded-xl px-3 py-1.5 text-xs text-zinc-600 dark:text-zinc-400">
+          <!-- Step 5 in Tab Order: Details -->
+          <input id="taskDetails" type="text" tabindex="5" placeholder="Execution criteria, links, context notes..." 
+                 class="flex-1 input-clean rounded-xl px-3 py-1.5 text-xs placeholder-zinc-400">
+          <!-- Step 6 in Tab Order: Commit Button -->
+          <button onclick="createTask()" tabindex="6" class="bg-zinc-900 hover:bg-black dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold px-5 py-1.5 rounded-xl transition shadow-xs">
+            Commit
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Deck Control Header -->
+      <div class="flex items-center justify-between text-xs px-1 text-zinc-400 font-mono">
+        <span class="text-[11px] tracking-wider uppercase font-semibold text-zinc-500 dark:text-zinc-400">Directives</span>
+        <span id="activeCountBadge" class="text-[11px] text-zinc-400 font-medium"></span>
+      </div>
+
+      <!-- Directives Stream -->
+      <div id="taskList" class="flex-1 overflow-y-auto space-y-2.5 pr-1.5 pb-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: Collapsible Working Memory Buffer -->
+
+    <!-- 1. Collapsed Sliver Handle -->
+    <aside id="scratchpadSliver" onclick="toggleScratchpad(true)" 
+           class="w-10 rounded-2xl border flex flex-col items-center justify-between py-6 cursor-pointer select-none transition-all duration-200 hover:border-zinc-400 dark:hover:border-zinc-600 group hidden shadow-xs"
+           style="background-color: var(--bg-surface); border-color: var(--border-color);" 
+           title="Click to expand Scratchpad">
+      <span class="text-xs group-hover:scale-110 transition">📝</span>
+      <span class="vertical-rl text-[10px] font-mono tracking-widest uppercase font-semibold text-zinc-400 group-hover:text-zinc-700 dark:group-hover:text-zinc-200">
+        SCRATCHPAD BUFFER
+      </span>
+      <span class="text-[10px] text-zinc-400 group-hover:text-zinc-600 transition">⇥</span>
+    </aside>
+
+    <!-- 2. Full Buffer Drawer -->
+    <section id="scratchpadDeck" class="w-[500px] rounded-2xl border flex flex-col overflow-hidden transition-all duration-300 shadow-sm"
+             style="background-color: var(--bg-surface); border-color: var(--border-color);">
+      <div class="px-4 py-3 border-b flex items-center justify-between" style="border-color: var(--border-color); background-color: var(--bg-subtle);">
+        <div class="flex items-center space-x-2">
+          <span class="text-xs">📝</span>
+          <span class="text-[11px] font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-300 font-mono">Scratchpad Buffer</span>
+        </div>
+        <div class="flex items-center space-x-2.5">
+          <span id="saveStatus" class="text-[10px] font-mono text-zinc-400 uppercase tracking-wider"></span>
+          <button onclick="clearNotes()" class="text-[11px] text-zinc-400 hover:text-rose-500 transition px-1" tabindex="-1">Clear</button>
+          <div class="h-3 w-px bg-zinc-200 dark:bg-zinc-800"></div>
+          <button onclick="toggleScratchpad(false)" class="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 p-1 text-xs transition" title="Minimize Buffer (Cmd + \)" tabindex="-1">
+            ⇥
+          </button>
+        </div>
+      </div>
+
+      <!-- Advanced Quill Container -->
+      <div class="flex-1 flex flex-col overflow-hidden bg-transparent">
+        <div id="editor" class="flex-1"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Edit Directive Modal -->
+  <div id="editModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border" style="background-color: var(--bg-surface); border-color: var(--border-color);">
+      <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--border-color);">
+        <h3 class="text-xs font-semibold tracking-wider font-mono uppercase" style="color: var(--text-title);">Edit Directive</h3>
+        <button onclick="closeEditModal()" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-sm">✕</button>
+      </div>
+
+      <input type="hidden" id="editTaskId">
+
+      <div class="space-y-3.5">
+        <div>
+          <label class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1">Title</label>
+          <input id="editTitle" type="text" class="w-full input-clean rounded-xl px-3 py-2 text-xs">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1">Category</label>
+            <select id="editCategory" class="w-full input-clean rounded-xl px-2.5 py-2 text-xs">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1">Priority</label>
+            <select id="editPriority" class="w-full input-clean rounded-xl px-2.5 py-2 text-xs">
+              <option value="red">High</option>
+              <option value="amber">Medium</option>
+              <option value="green">Low</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1">Due Date</label>
+          <input id="editDue" type="date" class="w-full input-clean rounded-xl px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">
+        </div>
+
+        <div>
+          <label class="text-[11px] font-mono uppercase tracking-wider text-zinc-400 block mb-1">Context / Details</label>
+          <textarea id="editDetails" rows="3" class="w-full input-clean rounded-xl px-3 py-2 text-xs" placeholder="Add extra notes or links..."></textarea>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t flex items-center justify-between" style="border-color: var(--border-color);">
+        <button onclick="deleteFromEditModal()" class="text-xs text-rose-500 hover:underline">
+          Delete Directive
+        </button>
+        <div class="flex gap-2">
+          <button onclick="closeEditModal()" class="px-3.5 py-1.5 text-xs text-zinc-500 hover:bg-zinc-100 dark:hover:bg-white/[0.04] rounded-lg">Cancel</button>
+          <button onclick="saveTaskEdit()" class="px-4 py-1.5 text-xs font-semibold bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 rounded-xl transition shadow-xs">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: End of Day Debrief -->
+  <div id="eodModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 border" style="background-color: var(--bg-surface); border-color: var(--border-color);">
+      <div class="flex items-center justify-between border-b pb-3" style="border-color: var(--border-color);">
+        <div>
+          <h2 class="text-sm font-bold font-mono" style="color: var(--text-title);">✓ END OF DAY AUDIT</h2>
+          <p class="text-[11px] text-zinc-500 font-mono mt-0.5" id="eodTimestamp"></p>
+        </div>
+        <button onclick="closeEodModal()" class="text-zinc-400 hover:text-zinc-200 text-sm">✕</button>
+      </div>
+
+      <div class="space-y-2">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-emerald-500 font-mono">
+          ✓ Completed Today (<span id="eodDoneCount">0</span>)
+        </h3>
+        <div id="eodDoneList" class="max-h-48 overflow-y-auto space-y-1.5 pr-1 p-3 rounded-xl border text-xs" style="background-color: var(--bg-subtle); border-color: var(--border-color);"></div>
+      </div>
+
+      <div class="space-y-2">
+        <h3 class="text-xs font-semibold uppercase tracking-wider text-amber-500 font-mono">
+          🗓️ On Radar For Tomorrow (<span id="eodTomorrowCount">0</span>)
+        </h3>
+        <div id="eodTomorrowList" class="max-h-36 overflow-y-auto space-y-1.5 pr-1 p-3 rounded-xl border text-xs" style="background-color: var(--bg-subtle); border-color: var(--border-color);"></div>
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2 border-t" style="border-color: var(--border-color);">
+        <button onclick="closeEodModal()" class="px-3.5 py-1.5 text-xs text-zinc-500 hover:opacity-80 rounded-lg">Keep Working</button>
+        <button onclick="confirmPurge()" class="px-4 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl shadow-xs transition">
+          Clear Decks & Purge Completed
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Category & Tag Manager -->
+  <div id="catModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+    <div class="rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border" style="background-color: var(--bg-surface); border-color: var(--border-color);">
+      <div class="flex items-center justify-between border-b pb-2" style="border-color: var(--border-color);">
+        <h3 class="text-xs font-bold uppercase tracking-wider font-mono" style="color: var(--text-title);">Categories & Accent Palette</h3>
+        <button onclick="closeCategoryModal()" class="text-zinc-400 hover:text-zinc-200 text-sm">✕</button>
+      </div>
+
+      <div class="flex gap-2 items-center">
+        <input id="newCatName" type="text" placeholder="Category name..." class="flex-1 input-clean rounded-xl px-3 py-1.5 text-xs">
+        <input id="newCatColor" type="color" value="#6366f1" class="w-8 h-8 rounded-xl cursor-pointer bg-transparent border-none">
+        <button onclick="createCategory()" class="bg-zinc-900 hover:bg-black dark:bg-white dark:hover:bg-zinc-100 text-white dark:text-zinc-950 text-xs font-semibold px-4 py-1.5 rounded-xl shadow-xs transition">Add</button>
+      </div>
+
+      <div id="catList" class="space-y-1.5 max-h-56 overflow-y-auto pr-1"></div>
+    </div>
+  </div>
+
+  <script>
+    let tasks = [];
+    let categories = [];
+    let sortableInstance = null;
+    let scratchpadExpanded = true;
+
+    // Track keyboard active indices in popovers
+    let categoryActiveIdx = -1;
+    let priorityActiveIdx = -1;
+    let categoryTypeBuffer = "";
+    let categoryTypeTimer = null;
+    let priorityTypeBuffer = "";
+    let priorityTypeTimer = null;
+
+    // Live Clock
+    function updateClock() {
+      const now = new Date();
+      document.getElementById('clock').innerText = now.toLocaleString('en-GB', { 
+        weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Theme Management
+    function isDarkTheme() {
+      return document.documentElement.classList.contains('dark');
+    }
+
+    function initTheme() {
+      const saved = localStorage.getItem('cc_theme') || 'light';
+      if (saved === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.getElementById('themeIcon').innerText = '☀️';
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('themeIcon').innerText = '🌙';
+      }
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('cc_theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').innerText = isDark ? '☀️' : '🌙';
+      renderTasks();
+    }
+    initTheme();
+
+    function getContrastSafeColor(hex, isDark) {
+      if (!hex || hex[0] !== '#') return hex;
+      let r = parseInt(hex.slice(1, 3), 16);
+      let g = parseInt(hex.slice(3, 5), 16);
+      let b = parseInt(hex.slice(5, 7), 16);
+
+      let lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+      if (!isDark) {
+        if (lum > 0.52) {
+          r = Math.floor(r * 0.52);
+          g = Math.floor(g * 0.52);
+          b = Math.floor(b * 0.52);
+        }
+      } else {
+        if (lum < 0.48) {
+          r = Math.min(255, Math.floor(r + (255 - r) * 0.55));
+          g = Math.min(255, Math.floor(g + (255 - g) * 0.55));
+          b = Math.min(255, Math.floor(b + (255 - b) * 0.55));
+        }
+      }
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    // Scratchpad Popout / Sliver Logic
+    function initScratchpad() {
+      const saved = localStorage.getItem('cc_scratchpad_expanded');
+      scratchpadExpanded = saved === null ? true : saved === 'true';
+      renderScratchpadState();
+    }
+
+    function toggleScratchpad(forceState) {
+      scratchpadExpanded = (forceState !== undefined) ? forceState : !scratchpadExpanded;
+      localStorage.setItem('cc_scratchpad_expanded', scratchpadExpanded);
+      renderScratchpadState();
+    }
+
+    function renderScratchpadState() {
+      const deck = document.getElementById('scratchpadDeck');
+      const sliver = document.getElementById('scratchpadSliver');
+      if (scratchpadExpanded) {
+        deck.style.display = 'flex';
+        sliver.classList.add('hidden');
+      } else {
+        deck.style.display = 'none';
+        sliver.classList.remove('hidden');
+      }
+    }
+    initScratchpad();
+
+    // -------------------------------------------------------------
+    // FULL KEYBOARD-ACCESSIBLE PRIORITY POPOVER
+    // -------------------------------------------------------------
+    const priorityConfig = {
+      red: { label: "High", color: "#f43f5e" },
+      amber: { label: "Medium", color: "#f59e0b" },
+      green: { label: "Low", color: "#10b981" }
+    };
+
+    function togglePriorityMenu(openExplicitly = null) {
+      const menu = document.getElementById('priorityMenu');
+      const shouldOpen = openExplicitly !== null ? openExplicitly : menu.classList.contains('hidden');
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+        document.getElementById('categoryMenu').classList.add('hidden');
+        priorityActiveIdx = 0;
+        updatePriorityHighlight();
+      } else {
+        menu.classList.add('hidden');
+        clearPriorityHighlight();
+      }
+    }
+
+    function updatePriorityHighlight() {
+      const items = document.querySelectorAll('#priorityMenu .popover-item');
+      items.forEach((it, idx) => {
+        if (idx === priorityActiveIdx) {
+          it.classList.add('active-keyboard');
+        } else {
+          it.classList.remove('active-keyboard');
+        }
+      });
+    }
+
+    function clearPriorityHighlight() {
+      document.querySelectorAll('#priorityMenu .popover-item').forEach(it => it.classList.remove('active-keyboard'));
+      priorityActiveIdx = -1;
+    }
+
+    function selectPriority(val) {
+      const cfg = priorityConfig[val] || priorityConfig.amber;
+      document.getElementById('taskPriority').value = val;
+      const textElem = document.getElementById('selectedPriorityText');
+      textElem.innerText = cfg.label;
+      textElem.className = 'font-semibold text-zinc-900 dark:text-zinc-100';
+      document.getElementById('selectedPriorityDot').style.backgroundColor = cfg.color;
+      togglePriorityMenu(false);
+    }
+
+    function resetPriorityPicker() {
+      document.getElementById('taskPriority').value = '';
+      const textElem = document.getElementById('selectedPriorityText');
+      textElem.innerText = 'Priority';
+      textElem.className = 'font-medium text-zinc-500 dark:text-zinc-400';
+      document.getElementById('selectedPriorityDot').style.backgroundColor = '';
+      document.getElementById('selectedPriorityDot').className = 'w-2.5 h-2.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shadow-2xs';
+    }
+
+    // Dedicated key mapping for instant one-key priority selection
+    const priorityKeyMap = {
+      'h': 'red',
+      'r': 'red',      // 'r' for red/high
+      '1': 'red',
+      'm': 'amber',
+      'a': 'amber',    // 'a' for amber/medium
+      '2': 'amber',
+      'l': 'green',
+      'g': 'green',    // 'g' for green/low
+      '3': 'green'
+    };
+
+    const priBtn = document.getElementById('priorityDropdownBtn');
+    priBtn.addEventListener('click', () => togglePriorityMenu());
+    priBtn.addEventListener('keydown', (e) => {
+      const menu = document.getElementById('priorityMenu');
+      const isOpen = !menu.classList.contains('hidden');
+      const items = Array.from(document.querySelectorAll('#priorityMenu .popover-item'));
+      const keyLower = e.key.toLowerCase();
+
+      // 1. Direct one-key instant selection (Works whether menu is open or closed)
+      if (priorityKeyMap[keyLower]) {
+        e.preventDefault();
+        const targetVal = priorityKeyMap[keyLower];
+        selectPriority(targetVal);
+        priorityActiveIdx = items.findIndex(it => it.getAttribute('data-val') === targetVal);
+        updatePriorityHighlight();
+        return;
+      }
+
+      // 2. Arrow Navigation
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen) {
+          togglePriorityMenu(true);
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          priorityActiveIdx = (priorityActiveIdx + 1) % items.length;
+        } else {
+          priorityActiveIdx = (priorityActiveIdx - 1 + items.length) % items.length;
+        }
+        updatePriorityHighlight();
+      } 
+      // 3. Confirm with Enter or Space
+      else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (!isOpen) {
+          togglePriorityMenu(true);
+        } else if (priorityActiveIdx >= 0 && items[priorityActiveIdx]) {
+          const val = items[priorityActiveIdx].getAttribute('data-val');
+          selectPriority(val);
+        }
+      } 
+      // 4. Tab Navigation
+      else if (e.key === 'Tab') {
+        if (isOpen && priorityActiveIdx >= 0 && items[priorityActiveIdx]) {
+          const val = items[priorityActiveIdx].getAttribute('data-val');
+          selectPriority(val);
+        } else {
+          togglePriorityMenu(false);
+        }
+      } 
+      // 5. Dismiss with Escape
+      else if (e.key === 'Escape') {
+        togglePriorityMenu(false);
+      }
+    });
+
+    // -------------------------------------------------------------
+    // FULL KEYBOARD-ACCESSIBLE CATEGORY POPOVER
+    // -------------------------------------------------------------
+    async function loadCategories() {
+      const res = await fetch('/api/categories');
+      categories = await res.json();
+      renderCategoryDropdowns();
+      renderCategoryManagerList();
+    }
+
+    function toggleCategoryMenu(openExplicitly = null) {
+      const menu = document.getElementById('categoryMenu');
+      const shouldOpen = openExplicitly !== null ? openExplicitly : menu.classList.contains('hidden');
+      if (shouldOpen) {
+        menu.classList.remove('hidden');
+        document.getElementById('priorityMenu').classList.add('hidden');
+        categoryActiveIdx = 0;
+        updateCategoryHighlight();
+      } else {
+        menu.classList.add('hidden');
+        clearCategoryHighlight();
+      }
+    }
+
+    function updateCategoryHighlight() {
+      const items = document.querySelectorAll('#categoryMenu .popover-item');
+      items.forEach((it, idx) => {
+        if (idx === categoryActiveIdx) {
+          it.classList.add('active-keyboard');
+        } else {
+          it.classList.remove('active-keyboard');
+        }
+      });
+    }
+
+    function clearCategoryHighlight() {
+      document.querySelectorAll('#categoryMenu .popover-item').forEach(it => it.classList.remove('active-keyboard'));
+      categoryActiveIdx = -1;
+    }
+
+    function selectCategory(name, color) {
+      document.getElementById('taskCategorySelect').value = name;
+      const textElem = document.getElementById('selectedCatText');
+      textElem.innerText = name;
+      textElem.className = 'truncate font-semibold text-zinc-900 dark:text-zinc-100';
+      document.getElementById('selectedCatDot').style.backgroundColor = color;
+      toggleCategoryMenu(false);
+    }
+
+    function resetCategoryPicker() {
+      document.getElementById('taskCategorySelect').value = '';
+      const textElem = document.getElementById('selectedCatText');
+      textElem.innerText = 'Category';
+      textElem.className = 'truncate font-medium text-zinc-500 dark:text-zinc-400';
+      document.getElementById('selectedCatDot').style.backgroundColor = '';
+      document.getElementById('selectedCatDot').className = 'w-2.5 h-2.5 rounded-full bg-zinc-400 dark:bg-zinc-600 shadow-2xs';
+    }
+
+    // Category Button Keyboard Listener
+    const catBtn = document.getElementById('categoryDropdownBtn');
+    catBtn.addEventListener('click', () => toggleCategoryMenu());
+    catBtn.addEventListener('keydown', (e) => {
+      const menu = document.getElementById('categoryMenu');
+      const isOpen = !menu.classList.contains('hidden');
+      const items = Array.from(document.querySelectorAll('#categoryMenu .popover-item'));
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!isOpen) {
+          toggleCategoryMenu(true);
+          return;
+        }
+        if (e.key === 'ArrowDown') {
+          categoryActiveIdx = (categoryActiveIdx + 1) % items.length;
+        } else {
+          categoryActiveIdx = (categoryActiveIdx - 1 + items.length) % items.length;
+        }
+        updateCategoryHighlight();
+      } else if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (!isOpen) {
+          toggleCategoryMenu(true);
+        } else if (categoryActiveIdx >= 0 && items[categoryActiveIdx]) {
+          items[categoryActiveIdx].click();
+        }
+      } else if (e.key === 'Tab') {
+        // Tab selects currently highlighted category if menu is open, then jumps to Priority
+        if (isOpen && categoryActiveIdx >= 0 && items[categoryActiveIdx]) {
+          items[categoryActiveIdx].click();
+        } else {
+          toggleCategoryMenu(false);
+        }
+      } else if (e.key === 'Escape') {
+        toggleCategoryMenu(false);
+      } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        // Multi-letter typing buffer: type "dee" -> highlights Deep Work instantly
+        clearTimeout(categoryTypeTimer);
+        categoryTypeBuffer += e.key.toLowerCase();
+        categoryTypeTimer = setTimeout(() => { categoryTypeBuffer = ""; }, 600);
+
+        const matchIdx = categories.findIndex(c => c.name.toLowerCase().startsWith(categoryTypeBuffer));
+        if (matchIdx !== -1) {
+          const matchedCategory = categories[matchIdx];
+          selectCategory(matchedCategory.name, matchedCategory.color);
+          categoryActiveIdx = matchIdx;
+          updateCategoryHighlight();
+        }
+      }
+    });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      const catMenu = document.getElementById('categoryMenu');
+      if (catBtn && catMenu && !catBtn.contains(e.target) && !catMenu.contains(e.target)) {
+        toggleCategoryMenu(false);
+      }
+
+      const priMenu = document.getElementById('priorityMenu');
+      if (priBtn && priMenu && !priBtn.contains(e.target) && !priMenu.contains(e.target)) {
+        togglePriorityMenu(false);
+      }
+    });
+
+    function renderCategoryDropdowns() {
+      const menu = document.getElementById('categoryMenu');
+      menu.innerHTML = '';
+      if (categories.length > 0) {
+        categories.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'popover-item flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition text-xs font-medium';
+          item.style.color = 'var(--text-main)';
+          item.onclick = (e) => {
+            e.stopPropagation();
+            selectCategory(c.name, c.color);
+          };
+          item.innerHTML = `
+            <span class="w-2.5 h-2.5 rounded-full shadow-2xs" style="background-color: ${c.color}"></span>
+            <span>${escapeHtml(c.name)}</span>
+          `;
+          menu.appendChild(item);
+        });
+      }
+
+      const editSelect = document.getElementById('editCategory');
+      if (editSelect) {
+        editSelect.innerHTML = '';
+        categories.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.name;
+          opt.innerText = c.name;
+          editSelect.appendChild(opt);
+        });
+      }
+    }
+
+    function renderCategoryManagerList() {
+      const container = document.getElementById('catList');
+      container.innerHTML = '';
+      categories.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-2.5 rounded-xl border text-xs';
+        item.style.backgroundColor = 'var(--bg-subtle)';
+        item.style.borderColor = 'var(--border-color)';
+        item.style.color = 'var(--text-main)';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2.5">
+            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${c.color}"></span>
+            <span class="font-medium">${escapeHtml(c.name)}</span>
+          </div>
+          <button onclick="deleteCategory('${c.id}')" class="text-zinc-400 hover:text-rose-500 transition" tabindex="-1">✕</button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    async function createCategory() {
+      const nameInput = document.getElementById('newCatName');
+      const name = nameInput.value.trim();
+      const color = document.getElementById('newCatColor').value;
+      if (!name) return;
+
+      const res = await fetch('/api/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, color })
+      });
+
+      if (res.ok) {
+        nameInput.value = '';
+        await loadCategories();
+        renderTasks();
+      } else {
+        alert("Category could not be created or already exists.");
+      }
+    }
+
+    async function deleteCategory(id) {
+      if (!confirm("Delete category?")) return;
+      await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      await loadCategories();
+      renderTasks();
+    }
+
+    function openCategoryModal() { document.getElementById('catModal').classList.remove('hidden'); }
+    function closeCategoryModal() { document.getElementById('catModal').classList.add('hidden'); }
+
+    // Directives
+    async function loadTasks() {
+      const res = await fetch('/api/tasks');
+      tasks = await res.json();
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const container = document.getElementById('taskList');
+      container.innerHTML = '';
+      const dark = isDarkTheme();
+
+      const pending = tasks.filter(t => t.status !== 'completed');
+      document.getElementById('headerDirectiveCounter').innerText = `${pending.length} ACTIVE DIRECTIVES`;
+      document.getElementById('activeCountBadge').innerText = `${pending.length} Remaining`;
+
+      if (tasks.length === 0) {
+        container.innerHTML = `
+          <div class="py-20 text-center text-xs text-zinc-400 border border-dashed rounded-2xl font-mono" style="border-color: var(--border-color);">
+            ALL DIRECTIVES CONQUERED. WORKSPACE CLEAR.
+          </div>`;
+        return;
+      }
+
+      tasks.forEach(t => {
+        const isDone = t.status === 'completed';
+        const taskCatName = (t.category || 'General').trim();
+        const catObj = categories.find(c => c.name && c.name.toLowerCase() === taskCatName.toLowerCase()) || { color: '#6366f1' };
+
+        const safeTextColor = getContrastSafeColor(catObj.color, dark);
+
+        const priorityAccent = {
+          red: "#f43f5e",
+          amber: "#f59e0b",
+          green: "#10b981"
+        }[t.priority] || "#71717a";
+
+        let dateHtml = '';
+        if (t.due_date) {
+          dateHtml = `
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded-md border text-zinc-500 font-medium" style="background-color: var(--bg-subtle); border-color: var(--border-color);">
+              🗓 ${t.due_date}
+            </span>`;
+        }
+
+        let detailsHtml = '';
+        if (t.details) {
+          const formatted = t.details.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-blue-500 hover:underline">$1</a>');
+          detailsHtml = `<p class="text-xs text-zinc-500 mt-1 font-sans leading-relaxed ${isDone ? 'line-through opacity-40' : ''}">${formatted}</p>`;
+        }
+
+        const div = document.createElement('div');
+        div.dataset.id = t.id;
+
+        div.style.setProperty('--card-glow-left', `${catObj.color}24`);
+        div.style.setProperty('--card-glow-right', `${catObj.color}35`);
+
+        div.className = `directive-card group p-3.5 rounded-xl flex items-start justify-between gap-3 ${isDone ? 'opacity-40' : ''}`;
+        
+        div.innerHTML = `
+          <!-- Minimalist Priority Vertical Edge Bar -->
+          <div class="absolute left-0 top-3 bottom-3 w-[3px] rounded-r-md" style="background-color: ${priorityAccent};"></div>
+
+          <div class="flex items-start gap-3 flex-1 min-w-0 pl-1.5 z-10">
+            <!-- Drag Handle -->
+            <span class="drag-handle text-zinc-300 dark:text-zinc-600 hover:text-zinc-500 cursor-grab text-xs mt-0.5 select-none font-mono">⋮⋮</span>
+
+            <!-- Checkbox -->
+            <button onclick="toggleTaskStatus('${t.id}', '${t.status}')" class="mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition"
+                    style="border-color: var(--border-color); ${isDone ? 'background-color: #10b981; border-color: #10b981; color: white;' : ''}" tabindex="-1">
+              ${isDone ? '<span class="text-[9px] font-bold">✓</span>' : ''}
+            </button>
+
+            <!-- Card Content -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="text-xs font-semibold tracking-tight ${isDone ? 'line-through text-zinc-400' : ''}" style="color: ${isDone ? 'var(--text-muted)' : 'var(--text-main)'};">${escapeHtml(t.title || 'Untitled')}</span>
+                
+                <!-- Readable Contrast-Adjusted Category Badge -->
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold shadow-2xs" 
+                      style="background-color: ${catObj.color}1c; color: ${safeTextColor}; border: 1px solid ${catObj.color}40;">
+                  <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${catObj.color};"></span>
+                  ${escapeHtml(taskCatName)}
+                </span>
+
+                ${dateHtml}
+              </div>
+              ${detailsHtml}
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="opacity-0 group-hover:opacity-100 flex items-center space-x-1.5 transition text-xs z-10">
+            <button onclick="openEditModal('${t.id}')" title="Edit Directive" class="p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition" tabindex="-1">
+              ✏️
+            </button>
+            <button onclick="deleteTask('${t.id}')" title="Delete Directive" class="p-1 text-zinc-400 hover:text-rose-500 transition" tabindex="-1">
+              ✕
+            </button>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      initSortable();
+    }
+
+    function initSortable() {
+      const container = document.getElementById('taskList');
+      if (sortableInstance) sortableInstance.destroy();
+      sortableInstance = new Sortable(container, {
+        handle: '.drag-handle',
+        animation: 160,
+        ghostClass: 'sortable-ghost',
+        onEnd: async function () {
+          const ids = Array.from(container.children).map(child => child.dataset.id).filter(Boolean);
+          await fetch('/api/tasks/reorder', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ task_ids: ids })
+          });
+        }
+      });
+    }
+
+    async function createTask() {
+      const input = document.getElementById('taskTitle');
+      const title = input.value.trim();
+      if (!title) return;
+
+      let categoryVal = document.getElementById('taskCategorySelect').value;
+      if (!categoryVal && categories.length > 0) {
+        categoryVal = categories[0].name;
+      } else if (!categoryVal) {
+        categoryVal = 'General';
+      }
+
+      let priorityVal = document.getElementById('taskPriority').value;
+      if (!priorityVal) {
+        priorityVal = 'amber';
+      }
+
+      await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title,
+          category: categoryVal,
+          priority: priorityVal,
+          due_date: document.getElementById('taskDue').value || null,
+          details: document.getElementById('taskDetails').value.trim() || null
+        })
+      });
+
+      input.value = '';
+      document.getElementById('taskDetails').value = '';
+      document.getElementById('taskDue').value = '';
+
+      resetCategoryPicker();
+      resetPriorityPicker();
+
+      await loadTasks();
+      input.focus();
+    }
+
+    async function toggleTaskStatus(id, current) {
+      await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: current === 'completed' ? 'pending' : 'completed' })
+      });
+      loadTasks();
+    }
+
+    async function deleteTask(id) {
+      await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      loadTasks();
+    }
+
+    // Modal Edit
+    function openEditModal(taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      document.getElementById('editTaskId').value = task.id;
+      document.getElementById('editTitle').value = task.title || '';
+      document.getElementById('editCategory').value = task.category || '';
+      document.getElementById('editPriority').value = task.priority || 'amber';
+      document.getElementById('editDue').value = task.due_date || '';
+      document.getElementById('editDetails').value = task.details || '';
+
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    async function saveTaskEdit() {
+      const taskId = document.getElementById('editTaskId').value;
+      const payload = {
+        title: document.getElementById('editTitle').value.trim(),
+        category: document.getElementById('editCategory').value,
+        priority: document.getElementById('editPriority').value,
+        due_date: document.getElementById('editDue').value || null,
+        details: document.getElementById('editDetails').value.trim() || null
+      };
+
+      await fetch(`/api/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      closeEditModal();
+      loadTasks();
+    }
+
+    async function deleteFromEditModal() {
+      const taskId = document.getElementById('editTaskId').value;
+      if (!confirm("Permanently delete this directive?")) return;
+      await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
+      closeEditModal();
+      loadTasks();
+    }
+
+    // End of Day Debrief
+    async function triggerEndOfDay() {
+      const res = await fetch('/api/eod-summary');
+      const summary = await res.json();
+
+      document.getElementById('eodTimestamp').innerText = `SESSION AUDIT // ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+      document.getElementById('eodDoneCount').innerText = summary.completed_count;
+      document.getElementById('eodTomorrowCount').innerText = summary.due_tomorrow_count;
+
+      const doneContainer = document.getElementById('eodDoneList');
+      doneContainer.innerHTML = '';
+      if (summary.completed.length === 0) {
+        doneContainer.innerHTML = '<span class="text-zinc-400 italic">No tasks completed in this session yet.</span>';
+      } else {
+        summary.completed.forEach(t => {
+          const div = document.createElement('div');
+          div.className = 'text-zinc-700 dark:text-zinc-300 flex items-center gap-2';
+          div.innerHTML = `<span class="text-emerald-500 font-bold">✓</span> <span class="line-through">${escapeHtml(t.title)}</span>`;
+          doneContainer.appendChild(div);
+        });
+      }
+
+      const tomContainer = document.getElementById('eodTomorrowList');
+      tomContainer.innerHTML = '';
+      if (summary.due_tomorrow.length === 0) {
+        tomContainer.innerHTML = '<span class="text-zinc-400 italic">Clear schedule tomorrow. No deadlines detected.</span>';
+      } else {
+        summary.due_tomorrow.forEach(t => {
+          const div = document.createElement('div');
+          div.className = 'text-zinc-700 dark:text-zinc-300 flex items-center gap-2';
+          div.innerHTML = `<span class="text-amber-500 font-bold">•</span> <span>${escapeHtml(t.title)}</span>`;
+          tomContainer.appendChild(div);
+        });
+      }
+
+      document.getElementById('eodModal').classList.remove('hidden');
+    }
+
+    function closeEodModal() { document.getElementById('eodModal').classList.add('hidden'); }
+
+    async function confirmPurge() {
+      await fetch('/api/purge-completed', { method: 'POST' });
+      closeEodModal();
+      loadTasks();
+    }
+
+    // Register Horizontal Divider Module with Quill
+    const BlockEmbed = Quill.import('blots/block/embed');
+    class DividerBlot extends BlockEmbed {
+      static create() {
+        return document.createElement('hr');
+      }
+    }
+    DividerBlot.blotName = 'divider';
+    DividerBlot.tagName = 'hr';
+    Quill.register(DividerBlot);
+
+    // Quill Initialization with Word-Style Tooling
+    const quill = new Quill('#editor', {
+      theme: 'snow',
+      placeholder: 'Draft thoughts, outline project specs, or paste snippets...',
+      modules: {
+        toolbar: {
+          container: [
+            [{ 'size': ['small', false, 'large', 'huge'] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ 'color': [] }, { 'background': [] }],
+            [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+            [{ 'indent': '-1' }, { 'indent': '+1' }],
+            ['blockquote', 'code-block'],
+            ['clean']
+          ]
+        }
+      }
+    });
+
+    // Inject Divider Button into Quill's Toolbar Dynamically
+    const toolbar = document.querySelector('.ql-toolbar');
+    if (toolbar) {
+      const dividerBtn = document.createElement('button');
+      dividerBtn.type = 'button';
+      dividerBtn.className = 'ql-hr-btn';
+      dividerBtn.title = 'Insert Horizontal Divider';
+      dividerBtn.innerHTML = '―';
+      dividerBtn.tabIndex = -1;
+      dividerBtn.onclick = () => {
+        const range = quill.getSelection(true);
+        quill.insertEmbed(range.index, 'divider', true, Quill.sources.USER);
+        quill.setSelection(range.index + 1, Quill.sources.SILENT);
+      };
+      toolbar.appendChild(dividerBtn);
+    }
+
+    // Keyboard support for Tab and Shift+Tab indentation inside Quill
+    quill.keyboard.addBinding({ key: 'Tab' }, function(range) {
+      this.quill.formatLine(range.index, range.length, 'indent', '+1');
+      return false;
+    });
+    quill.keyboard.addBinding({ key: 'Tab', shiftKey: true }, function(range) {
+      this.quill.formatLine(range.index, range.length, 'indent', '-1');
+      return false;
+    });
+
+    let saveTimer;
+    async function initNotes() {
+      const res = await fetch('/api/notes');
+      const data = await res.json();
+      if (data.content) quill.root.innerHTML = data.content;
+    }
+
+    quill.on('text-change', () => {
+      document.getElementById('saveStatus').innerText = 'Saving...';
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        await fetch('/api/notes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: quill.root.innerHTML })
+        });
+        document.getElementById('saveStatus').innerText = 'Synced';
+        setTimeout(() => document.getElementById('saveStatus').innerText = '', 1500);
+      }, 700);
+    });
+
+    async function clearNotes() {
+      if (confirm('Clear scratchpad buffer?')) {
+        quill.setText('');
+        await fetch('/api/notes', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: '' })
+        });
+      }
+    }
+
+    // Keyboard Shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== document.getElementById('taskTitle') && !e.target.closest('.ql-editor') && !e.target.closest('#editModal')) {
+        e.preventDefault();
+        document.getElementById('taskTitle').focus();
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        toggleScratchpad();
+      }
+
+      if (e.key === 'Escape') {
+        closeEditModal();
+        closeCategoryModal();
+        closeEodModal();
+        toggleCategoryMenu(false);
+        togglePriorityMenu(false);
+      }
+    });
+
+    document.getElementById('taskTitle').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') createTask();
+    });
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.innerText = text;
+      return div.innerHTML;
+    }
+
+    // Sequential Boot
+    async function boot() {
+      await loadCategories();
+      await loadTasks();
+      await initNotes();
+    }
+    boot();
+  </script>
+</body>
+</html>
