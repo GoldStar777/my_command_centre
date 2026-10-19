@@ -5,21 +5,34 @@ APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLIST_LABEL="com.$USER.commandcentre"
 PLIST_PATH="$HOME/Library/LaunchAgents/${PLIST_LABEL}.plist"
 
-echo "=== Command Centre Setup ==="
+echo "========================================"
+echo "       Command Centre Setup (macOS)     "
+echo "========================================"
+echo ""
 
-# 1. Ask user for their preferred display name
-read -p "Enter your name for the app (press Enter for 'My'): " USER_INPUT_NAME
+# 1. Ask for user name
+read -p "Enter your name (press Enter for 'My'): " USER_INPUT_NAME
 if [ -z "$USER_INPUT_NAME" ]; then
-    DISPLAY_NAME="My Command Centre"
+    PREFIX="My"
 else
-    DISPLAY_NAME="${USER_INPUT_NAME}'s Command Centre"
+    PREFIX="${USER_INPUT_NAME}'s"
 fi
 
-# Save the chosen name into a local config file
-echo "APP_DISPLAY_NAME=\"${DISPLAY_NAME}\"" > "$APP_DIR/.config.env"
-echo "Configured app as: $DISPLAY_NAME"
+# 2. Ask for custom app title
+read -p "What do you want to call this app? (press Enter for 'Command Centre'): " USER_INPUT_TITLE
+if [ -z "$USER_INPUT_TITLE" ]; then
+    APP_TITLE="Command Centre"
+else
+    APP_TITLE="$USER_INPUT_TITLE"
+fi
 
-# 2. Virtual environment setup
+DISPLAY_NAME="${PREFIX} ${APP_TITLE}"
+echo "APP_DISPLAY_NAME=\"${DISPLAY_NAME}\"" > "$APP_DIR/.config.env"
+echo ""
+echo "[OK] Configured as: $DISPLAY_NAME"
+echo ""
+
+# 3. Virtual environment setup
 if [ ! -d "$APP_DIR/.venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv "$APP_DIR/.venv"
@@ -28,7 +41,7 @@ fi
 echo "Installing dependencies..."
 "$APP_DIR/.venv/bin/pip" install --quiet -r "$APP_DIR/requirements.txt"
 
-# 3. Safely reload the launchd service
+# 4. Safely reload launchd service
 echo "Registering background service..."
 launchctl unload "$PLIST_PATH" 2>/dev/null || true
 
@@ -42,7 +55,11 @@ cat <<EOF > "$PLIST_PATH"
     <key>ProgramArguments</key>
     <array>
         <string>${APP_DIR}/.venv/bin/python</string>
-        <string>${APP_DIR}/app.py</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>app:app</string>
+        <string>--port</string>
+        <string>8000</string>
     </array>
     <key>WorkingDirectory</key>
     <string>${APP_DIR}</string>

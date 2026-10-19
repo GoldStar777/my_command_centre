@@ -57,6 +57,9 @@ class CategoryCreate(BaseModel):
     name: str = Field(..., min_length=1)
     color: str = Field(..., min_length=4)
 
+class AppNameUpdate(BaseModel):
+    name: str = Field(..., min_length=1)
+
 class NoteUpdate(BaseModel):
     content: str
 
@@ -286,6 +289,17 @@ async def purge_completed_tasks():
         deleted_count = cursor.rowcount
         await db.commit()
         return {"status": "purged", "count": deleted_count}
+
+@app.post("/api/settings/name")
+async def update_app_name(payload: AppNameUpdate):
+    clean_name = payload.name.strip()
+    config_file = os.path.join(os.path.dirname(__file__), ".config.env")
+    try:
+        with open(config_file, "w", encoding="utf-8") as f:
+            f.write(f'APP_DISPLAY_NAME="{clean_name}"\n')
+        return {"status": "success", "app_name": clean_name}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Scratchpad Endpoints
 @app.get("/api/notes")

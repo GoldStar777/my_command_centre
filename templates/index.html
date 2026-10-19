@@ -289,8 +289,13 @@
     <div class="flex items-center space-x-4">
       <div class="flex items-center space-x-2.5">
         <span class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)]"></span>
-        <h1 class="text-xs font-bold tracking-wider uppercase font-mono" style="color: var(--text-title);">
-          {{ app_name or "My Command Centre"}}
+        <h1 id="appTitleHeading" 
+            onclick="editAppName()" 
+            title="Click to rename" 
+            class="text-xs font-bold tracking-wider uppercase font-mono cursor-pointer hover:underline hover:opacity-80 transition select-none flex items-center gap-1.5" 
+            style="color: var(--text-title);">
+          <span>{{ app_name or "My Command Centre" }}</span>
+          <span class="text-[10px] text-zinc-400 opacity-60">✎</span>
         </h1>
       </div>
       <div class="h-3 w-px bg-zinc-200 dark:bg-zinc-800"></div>
@@ -1388,6 +1393,36 @@
       await initNotes();
     }
     boot();
+  
+    async function editAppName() {
+      const headingSpan = document.querySelector('#appTitleHeading span');
+      const currentName = headingSpan.innerText.trim();
+      const newName = prompt("Rename your app:", currentName);
+
+      if (!newName || newName.trim() === "" || newName.trim() === currentName) {
+        return;
+      }
+
+      const cleanName = newName.trim();
+
+      try {
+        const res = await fetch('/api/settings/name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: cleanName })
+        });
+
+        if (res.ok) {
+          headingSpan.innerText = cleanName;
+          document.title = cleanName;
+        } else {
+          alert("Failed to save new name.");
+        }
+      } catch (err) {
+        console.error("Error updating app name:", err);
+        alert("Connection error while updating name.");
+      }
+    }
   </script>
 </body>
 </html>
