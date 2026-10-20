@@ -10,15 +10,16 @@ echo "      Uninstalling Command Centre       "
 echo "========================================"
 echo ""
 
-# 1. Stop and remove macOS background service
+# 1. Stop and purge macOS background service using modern + legacy launchctl
 echo "Stopping background service..."
+launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
 launchctl unload "$PLIST_PATH" 2>/dev/null || true
 rm -f "$PLIST_PATH"
 
-# 2. Terminate any lingering processes on port 8000
+# 2. Terminate any remaining process listening on port 8000
 kill -9 $(lsof -t -i:8000) 2>/dev/null || true
 
-echo "Background service removed."
+echo "Background service completely stopped and unregistered."
 echo ""
 
 # 3. Prompt user about data retention

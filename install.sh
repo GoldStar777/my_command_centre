@@ -42,7 +42,9 @@ echo "Installing dependencies..."
 "$APP_DIR/.venv/bin/pip" install --quiet -r "$APP_DIR/requirements.txt"
 
 # 4. Safely reload launchd service
+# Register background service
 echo "Registering background service..."
+launchctl bootout "gui/$(id -u)/${PLIST_LABEL}" 2>/dev/null || true
 launchctl unload "$PLIST_PATH" 2>/dev/null || true
 
 cat <<EOF > "$PLIST_PATH"
@@ -76,6 +78,7 @@ cat <<EOF > "$PLIST_PATH"
 EOF
 
 launchctl load "$PLIST_PATH"
+launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH" 2>/dev/null || launchctl load "$PLIST_PATH"
 
 echo ""
 echo " Setup complete! App is running in the background."
